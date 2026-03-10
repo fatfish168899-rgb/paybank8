@@ -1,0 +1,379 @@
+:root {
+    --primary: #0056ff;
+    --primary-gradient: linear-gradient(135deg, #0056ff 0%, #00a2ff 100%);
+    --bg-light: #f4f7fe;
+    --text-main: #1a2b4b;
+    --text-muted: #6b7c93;
+    --glass-bg: rgba(255, 255, 255, 0.85);
+    --glass-border: rgba(255, 255, 255, 0.5);
+    --km-font: 'Kantumruy Pro', 'Kantumruy', 'Noto Sans Khmer', 'Hanuman', 'Khmer OS Content', 'Khmer Sangam MN', system-ui, sans-serif;
+}
+
+/* 高棉语视觉优化 (V20.1) - 解决系统默认字体太细的问题 */
+html[lang="km"] body {
+    font-family: var(--km-font) !important;
+}
+
+html[lang="km"] .detail-label,
+html[lang="km"] .detail-value,
+html[lang="km"] div,
+html[lang="km"] span,
+html[lang="km"] button {
+    font-weight: 500;
+    /* 高棉语字符在 400 字重下通常偏细，提升至 500 以获得更好的阅读体验 */
+}
+
+html[lang="km"] .fw-bold,
+html[lang="km"] strong {
+    font-weight: 700 !important;
+}
+
+/* 语言切换器样式 */
+.lang-switcher {
+    display: inline-flex;
+    align-items: center;
+    background: rgba(0, 0, 0, 0.05);
+    padding: 1px 6px;
+    border-radius: 12px;
+    font-size: 0.6rem;
+    color: #666;
+}
+
+.lang-btn {
+    cursor: pointer;
+    padding: 0 3px;
+    transition: all 0.2s;
+    user-select: none;
+}
+
+.lang-btn.active {
+    color: #0d6efd;
+    font-weight: bold;
+}
+
+.lang-btn:hover {
+    color: #0d6efd;
+}
+
+.lang-switcher .divider {
+    margin: 0 2px;
+    opacity: 0.3;
+}
+
+body {
+    background: var(--bg-light);
+    background-image:
+        radial-gradient(at 0% 0%, rgba(0, 86, 255, 0.05) 0px, transparent 50%),
+        radial-gradient(at 100% 100%, rgba(0, 162, 255, 0.08) 0px, transparent 50%);
+    font-family: 'Outfit', 'Inter', system-ui, -apple-system, sans-serif;
+    color: var(--text-main);
+    min-height: 100vh;
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+    padding-top: 0;
+}
+
+.checkout-container {
+    max-width: 440px;
+    width: 100%;
+    padding: 0 10px;
+}
+
+.payment-card {
+    background: var(--glass-bg);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border-radius: 20px;
+    border: 1px solid var(--glass-border);
+    box-shadow:
+        0 15px 40px rgba(0, 86, 255, 0.06),
+        0 1px 2px rgba(0, 0, 0, 0.05);
+    padding: 6px 14px;
+    position: relative;
+    overflow: hidden;
+    margin-top: 0;
+}
+
+.amount-display {
+    font-size: 2.2rem;
+    font-weight: 900;
+    color: #0055ff;
+    margin: 5px 0 2px 0 !important;
+    letter-spacing: -1px;
+    text-align: center;
+}
+
+.amount-warning-container {
+    margin-top: 0 !important;
+    margin-bottom: 5px !important;
+}
+
+.qr-area {
+    padding: 2px;
+    border-radius: 12px;
+    margin: 4px 0;
+    text-align: center;
+    position: relative;
+}
+
+#qrcode {
+    padding: 0;
+    background: transparent;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 200px;
+}
+
+.final-qr-img {
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.12);
+    border: 1px solid rgba(0, 0, 0, 0.05);
+}
+
+/* 圆环倒计时样式 (V17 修复) */
+.circular-timer {
+    width: 44px;
+    height: 44px;
+}
+
+.circle-bg {
+    fill: none;
+    stroke: #f1f5f9;
+    stroke-width: 3.5;
+}
+
+.circle {
+    fill: none;
+    stroke: #ff4d4f;
+    stroke-width: 3.5;
+    stroke-linecap: round;
+    transition: stroke-dasharray 0.3s ease;
+}
+
+.percentage {
+    fill: #334155;
+    font-size: 9px;
+    font-family: 'JetBrains Mono', monospace;
+    font-weight: 800;
+    text-anchor: middle;
+}
+
+.btn-pay {
+    background: var(--primary-gradient);
+    color: white;
+    border-radius: 12px;
+    padding: 14px;
+    font-weight: 800;
+    font-size: 1rem;
+    border: none;
+    width: 100%;
+    transition: all 0.3s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+}
+
+.btn-pay:hover {
+    transform: translateY(-3px) scale(1.02);
+    box-shadow: 0 15px 35px rgba(0, 86, 255, 0.4);
+}
+
+/* 订单详情卡片 */
+.order-details-card {
+    background: #ffffff;
+    border: 1px solid #eef2f6;
+    border-radius: 12px;
+    margin: 5px 20px 8px 20px;
+    padding: 2px 12px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.02);
+}
+
+.detail-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 6px 0;
+    border-bottom: 1px dashed #e2e8f0;
+}
+
+.detail-row:last-child {
+    border-bottom: none;
+}
+
+.detail-label {
+    font-size: 0.82rem;
+    color: #64748b;
+    font-weight: 500;
+    display: flex;
+    align-items: center;
+}
+
+.detail-content {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-grow: 1;
+    justify-content: flex-end;
+}
+
+.detail-value {
+    font-size: 0.85rem;
+    font-weight: 700;
+    color: #1e293b;
+    text-align: right;
+    word-break: break-all;
+}
+
+#display-card-no {
+    font-size: 1.15rem;
+    font-weight: 800;
+}
+
+#display-order-no {
+    font-size: 0.72rem;
+    font-weight: 500;
+    opacity: 0.8;
+}
+
+.mini-copy-btn {
+    background: #f0f7ff;
+    color: #448aff;
+    border: none;
+    padding: 2px 10px;
+    border-radius: 6px;
+    font-size: 0.7rem;
+    font-weight: 800;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.bank-pill-container {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 8px;
+    /* 增加间距 */
+    padding: 0 5px;
+}
+
+.bank-pill img {
+    width: 100%;
+    height: 48px;
+    /* 稍微调低高度以获得更好的比例 */
+    object-fit: contain;
+    background: #fff;
+    border: 1.5px solid #d1d9e0;
+    /* 显著加深边框颜色 */
+    border-radius: 12px;
+    padding: 3px;
+    /* 极度压缩内边距，消除中心空白 */
+    transition: all 0.3s;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+    /* 增加微弱投影 */
+}
+
+.bank-pill.active img {
+    border-color: var(--primary);
+    border-width: 2.5px;
+    transform: scale(1.05);
+}
+
+.qr-action-group {
+    background: #f1f5f9;
+    border-radius: 12px;
+    overflow: hidden;
+    margin: 8px 20px 0 20px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+    border: 1px solid rgba(0, 0, 0, 0.05);
+}
+
+.qr-hint-row {
+    padding: 6px 10px;
+    font-size: 0.7rem;
+    font-weight: 600;
+    text-align: center;
+    color: #64748b;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    background: #f8fafc;
+}
+
+.qr-save-btn {
+    border: none;
+    width: 100%;
+    padding: 9px;
+    font-size: 0.78rem;
+    font-weight: 800;
+    color: #ffffff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    transition: all 0.2s;
+}
+
+.qr-save-btn i {
+    font-size: 0.9rem;
+    color: #ffffff !important;
+}
+
+/* 呼吸灯效果 (V20.0) */
+.pulse-dot {
+    width: 8px;
+    height: 8px;
+    background-color: #00c853;
+    border-radius: 50%;
+    margin-right: 8px;
+    box-shadow: 0 0 0 rgba(0, 200, 83, 0.4);
+    animation: dot-pulse 2s infinite ease-in-out;
+}
+
+@keyframes dot-pulse {
+    0% {
+        transform: scale(0.95);
+        box-shadow: 0 0 0 0 rgba(0, 200, 83, 0.7);
+    }
+
+    70% {
+        transform: scale(1);
+        box-shadow: 0 0 0 10px rgba(0, 200, 83, 0);
+    }
+
+    100% {
+        transform: scale(0.95);
+        box-shadow: 0 0 0 0 rgba(0, 200, 83, 0);
+    }
+}
+
+.status-indicator {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 8px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: #64748b;
+}
+
+.copy-toast {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: rgba(0, 0, 0, 0.85);
+    color: white;
+    padding: 10px 20px;
+    border-radius: 50px;
+    font-size: 0.85rem;
+    opacity: 0;
+    transition: all 0.3s;
+    z-index: 10000;
+}
+
+.copy-toast.show {
+    opacity: 1;
+    transform: translate(-50%, -60%);
+}
