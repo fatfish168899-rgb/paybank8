@@ -282,10 +282,15 @@
                 config.checkoutMode = data.checkout_mode; // [CRITICAL FIX] 同步模式
                 config.merchantOrderNo = data.out_order_no;
 
-                const expireAt = new Date(data.expire_at).getTime();
-                const serverTime = new Date(data.server_time).getTime();
-                const createdAt = new Date(data.created_at).getTime();
-                const remaining = Math.max(0, (expireAt - serverTime) / 1000);
+                // [FIX] 修复 Safari/iOS 遇到 带横杠的字符串直接返回 `Invalid Date` 从而变成 NaN 导致直接弹超时的 Bug
+                const expStr = (data.expire_at || '').replace(/-/g, '/');
+                const srvStr = (data.server_time || '').replace(/-/g, '/');
+
+                const expireAt = new Date(expStr).getTime();
+                const now = new Date(srvStr).getTime();
+                const createdAt = new Date((data.created_at || '').replace(/-/g, '/')).getTime();
+
+                let remaining = Math.max(0, Math.floor((expireAt - now) / 1000));
                 const total = Math.max(remaining, (expireAt - createdAt) / 1000);
 
                 config.remainingSeconds = remaining;
