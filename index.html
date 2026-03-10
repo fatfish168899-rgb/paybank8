@@ -151,12 +151,22 @@
         </div>
     </div>
 
-    <!-- 成功提示全屏遮罩 -->
     <div id="success-mask"
         style="display:none; position:fixed; inset:0; background:rgba(255,255,255,0.95); z-index:9999; flex-direction:column; align-items:center; justify-content:center; text-align:center;">
         <i class="fa-solid fa-circle-check text-success" style="font-size: 80px; margin-bottom:20px;"></i>
         <h3 class="fw-bold" data-i18n="pay_success">支付成功!</h3>
         <p class="text-muted mt-2" id="redirect-hint"></p>
+    </div>
+
+    <!-- 超时提示全屏遮罩 -->
+    <div id="expired-mask"
+        style="display:none; position:fixed; inset:0; background:rgba(255,255,255,0.98); z-index:9998; flex-direction:column; align-items:center; justify-content:center; text-align:center; padding: 20px;">
+        <i class="fa-solid fa-clock-rotate-left text-danger opacity-50"
+            style="font-size: 100px; margin-bottom:30px;"></i>
+        <h2 class="fw-bold text-danger mb-3" data-i18n="order_expired">订单已超时!</h2>
+        <p class="text-muted mb-4" style="max-width: 300px;">付款时效已过，请重新在平台发起支付。二维码及收款金额已失效。</p>
+        <button class="btn btn-outline-secondary px-4 rounded-pill" onclick="window.location.reload()"><i
+                class="fa-solid fa-rotate me-2"></i>刷新页面</button>
     </div>
 
     <script src="assets/js/bootstrap.bundle.min.js"></script>
@@ -206,6 +216,18 @@
 
                 const data = json.data;
                 const config = document.getElementById('checkout-config').dataset;
+
+                // [CRITICAL] 超时处理逻辑
+                if (data.status === 'expired') {
+                    const mask = document.getElementById('expired-mask');
+                    if (mask) {
+                        mask.style.display = 'flex';
+                        document.querySelector('.checkout-container').style.display = 'none';
+                        if (typeof updateInterface === 'function') updateInterface();
+                    }
+                    return;
+                }
+
                 config.orderNo = data.order_no;
                 config.checkoutMode = data.checkout_mode; // [CRITICAL FIX] 同步模式
                 config.merchantOrderNo = data.out_order_no;
