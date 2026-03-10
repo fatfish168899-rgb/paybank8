@@ -434,7 +434,8 @@ window.switchBank = async function (bankName, isPick = false) {
     if (infoArea) infoArea.classList.add('d-none');
 
     try {
-        const url = (isPick || config.checkoutMode === 'pick') ? 'api/assign_card.php' : 'api/switch_bank.php';
+        const apiBase = (window.API_BASE || '').endsWith('/') ? window.API_BASE : (window.API_BASE ? window.API_BASE + '/' : '');
+        const url = (isPick || config.checkoutMode === 'pick') ? apiBase + 'api/assign_card.php' : apiBase + 'api/switch_bank.php';
         const response = await fetch(url, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
