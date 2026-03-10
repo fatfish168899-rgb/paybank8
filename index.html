@@ -5,12 +5,10 @@
     <meta charset="UTF-8">
     <title>PayBank Secure Checkout</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <!-- 使用全量本地资源路径 -->
     <link href="assets/css/bootstrap.min.css" rel="stylesheet">
     <link href="assets/css/all.min.css" rel="stylesheet">
     <link href="assets/css/checkout.css" rel="stylesheet">
     <style>
-        /* 额外补丁：确保二维码中的 Logo 居中且美观 */
         #qrcode {
             position: relative;
         }
@@ -28,12 +26,16 @@
             box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
             display: none;
         }
+
+        .error-overlay {
+            padding: 20px;
+            text-align: center;
+            color: #dc3545;
+        }
     </style>
 </head>
 
 <body>
-
-    <!-- 核心配置区块：由 JS 动态填充，完全适配您的三方后端逻辑 -->
     <div id="checkout-config" data-khqr="" data-order-no="" data-merchant-order-no="" data-amount="0.00"
         data-checkout-mode="auto" data-remaining-seconds="600" data-bank-name=""></div>
 
@@ -48,12 +50,10 @@
                         <span class="divider">|</span>
                         <span class="lang-btn" onclick="setLanguage('zh')" id="lang-zh">ZH</span>
                     </div>
-
                     <div class="flex-grow-1 text-center">
                         <small class="text-danger fw-bold" style="font-size: 0.72rem;"
                             data-i18n="timer_hint">请在规定时间内完成支付</small>
                     </div>
-
                     <div class="circular-timer d-flex justify-content-end" style="min-width: 80px;">
                         <svg viewBox="0 0 36 36" class="circular-chart text-danger">
                             <path class="circle-bg"
@@ -66,7 +66,6 @@
                 </div>
 
                 <div class="bank-pill-container" id="bank-pills-list">
-                    <!-- 由 JS 根据 API 返回的 available_banks 动态生成 -->
                     <div class="text-center w-100 p-3">
                         <div class="spinner-border spinner-border-sm text-primary"></div>
                     </div>
@@ -75,7 +74,6 @@
 
             <div class="qr-area d-none" id="qr-display-area">
                 <div id="qrcode" class="mx-auto">
-                    <!-- 放置 Logo 的容器 -->
                     <img id="inner-bank-logo" class="qr-center-logo" src="">
                 </div>
                 <div class="qr-action-group">
@@ -92,7 +90,7 @@
 
             <div class="selection-placeholder p-4 text-center" id="selection-placeholder">
                 <div class="icon-circle mb-3 mx-auto">
-                    <i class="fa-solid fa-hand-pointer fa-2x text-primary animate-bounce"></i>
+                    <i class="fa-solid fa-hand-pointer fa-2x text-primary"></i>
                 </div>
                 <h5 class="fw-bold mb-1" data-i18n="placeholder_title">请选择您的支付银行</h5>
                 <p class="text-muted small" data-i18n="placeholder_desc">请选择银行以显示付款码</p>
@@ -108,48 +106,32 @@
 
             <div class="order-details-card d-none" id="payment-info-area">
                 <div class="detail-row">
-                    <span class="detail-label">
-                        <i class="fa-solid fa-credit-card me-1 opacity-75"></i>
-                        <span data-i18n="card_label">收款账户</span>
-                    </span>
-                    <div class="detail-content">
-                        <span class="detail-value font-monospace" id="display-card-no">------</span>
-                        <button class="mini-copy-btn" onclick="copyText('display-card-no', this)"
-                            data-i18n="copy">复制</button>
-                    </div>
+                    <span class="detail-label"><i class="fa-solid fa-credit-card me-1"></i><span
+                            data-i18n="card_label">收款账户</span></span>
+                    <div class="detail-content"><span class="detail-value font-monospace"
+                            id="display-card-no">------</span><button class="mini-copy-btn"
+                            onclick="copyText('display-card-no', this)" data-i18n="copy">复制</button></div>
                 </div>
                 <div class="detail-row">
-                    <span class="detail-label">
-                        <i class="fa-solid fa-user-check me-1 opacity-75"></i>
-                        <span data-i18n="receiver_label">收款姓名</span>
-                    </span>
-                    <div class="detail-content">
-                        <span class="detail-value" id="display-account-name">------</span>
-                        <button class="mini-copy-btn" onclick="copyText('display-account-name', this)"
-                            data-i18n="copy">复制</button>
-                    </div>
+                    <span class="detail-label"><i class="fa-solid fa-user-check me-1"></i><span
+                            data-i18n="receiver_label">收款姓名</span></span>
+                    <div class="detail-content"><span class="detail-value"
+                            id="display-account-name">------</span><button class="mini-copy-btn"
+                            onclick="copyText('display-account-name', this)" data-i18n="copy">复制</button></div>
                 </div>
                 <div class="detail-row">
-                    <span class="detail-label">
-                        <i class="fa-solid fa-building-columns me-1 opacity-75"></i>
-                        <span data-i18n="bank_label_row">收款银行</span>
-                    </span>
-                    <div class="detail-content">
-                        <span class="detail-value" id="display-bank-name">------</span>
-                        <button class="mini-copy-btn" onclick="copyText('display-bank-name', this)"
-                            data-i18n="copy">复制</button>
-                    </div>
+                    <span class="detail-label"><i class="fa-solid fa-building-columns me-1"></i><span
+                            data-i18n="bank_label_row">收款银行</span></span>
+                    <div class="detail-content"><span class="detail-value" id="display-bank-name">------</span><button
+                            class="mini-copy-btn" onclick="copyText('display-bank-name', this)"
+                            data-i18n="copy">复制</button></div>
                 </div>
                 <div class="detail-row">
-                    <span class="detail-label">
-                        <i class="fa-solid fa-receipt me-1 opacity-75"></i>
-                        <span data-i18n="order_no_label">订单号</span>
-                    </span>
-                    <div class="detail-content">
-                        <span class="detail-value" id="display-order-no">------</span>
-                        <button class="mini-copy-btn" onclick="copyText('display-order-no', this)"
-                            data-i18n="copy">复制</button>
-                    </div>
+                    <span class="detail-label"><i class="fa-solid fa-receipt me-1"></i><span
+                            data-i18n="order_no_label">订单号</span></span>
+                    <div class="detail-content"><span class="detail-value" id="display-order-no">------</span><button
+                            class="mini-copy-btn" onclick="copyText('display-order-no', this)"
+                            data-i18n="copy">复制</button></div>
                 </div>
             </div>
 
@@ -182,77 +164,70 @@
     <script src="assets/js/checkout.js"></script>
 
     <script>
-        // --- 后端 API 地址设定 ---
         const API_BASE = 'https://bank.paybank8.com';
-
         const urlParams = new URLSearchParams(window.location.search);
         const orderNo = urlParams.get('order_no') || urlParams.get('trade_no');
         const token = urlParams.get('token');
 
-        /**
-         * 初始化数据加载
-         */
         async function initCheckout() {
             if (!orderNo) {
-                alert("Missing Order Number");
+                console.error("Missing order_no");
+                document.getElementById('selection-placeholder').innerHTML = '<div class="error-overlay"><h5>缺少订单号</h5><p>请通过正确的支付链接访问</p></div>';
                 return;
             }
 
             try {
                 const res = await fetch(`${API_BASE}/api/get_order_details.php?order_no=${orderNo}&token=${token}`);
+                if (!res.ok) throw new Error('API request failed');
                 const json = await res.json();
 
                 if (json.code !== 200) {
-                    document.body.innerHTML = `<div class='text-center p-5'><h3>Error</h3><p>${json.msg}</p></div>`;
+                    document.getElementById('selection-placeholder').innerHTML = `<div class="error-overlay"><h5>订单错误</h5><p>${json.msg}</p></div>`;
                     return;
                 }
 
                 const data = json.data;
                 const config = document.getElementById('checkout-config').dataset;
-
-                // 同步配置
                 config.orderNo = data.order_no;
                 config.merchantOrderNo = data.out_order_no;
-                config.checkoutMode = data.checkout_mode || 'auto';
-                config.remainingSeconds = Math.max(0, (new Date(data.expire_at).getTime() - new Date(data.server_time).getTime()) / 1000);
 
-                // 基础 UI
+                const expireAt = new Date(data.expire_at).getTime();
+                const serverTime = new Date(data.server_time).getTime();
+                config.remainingSeconds = Math.max(0, (expireAt - serverTime) / 1000);
+
                 document.getElementById('copy-amount').innerText = `$${parseFloat(data.real_amount).toFixed(2)}`;
                 document.getElementById('display-order-no').textContent = data.out_order_no || data.order_no;
                 document.getElementById('merchant-ref-display').textContent = data.out_order_no || 'N/A';
 
-                // 渲染银行列表
                 renderBankList(data.available_banks, data.bank_name);
 
-                // 如果已经锁定了银行，直接显示
-                if (data.bank_name && data.khqr_string) {
+                if (data.bank_name && (data.khqr_string || data.qr_data)) {
                     config.bankName = data.bank_name;
                     applyPaymentData(data);
                 }
 
-                // 启动定时器
                 startVisualTimer(config.remainingSeconds);
-
-                // 开始轮询支付状态
                 startOrderPolling();
 
             } catch (err) {
                 console.error("Init Error:", err);
+                document.getElementById('selection-placeholder').innerHTML = '<div class="error-overlay"><h5>连接失败</h5><p>无法连接到后端服务器，请检查网络或 CORS 设置</p></div>';
             }
         }
 
         function renderBankList(banks, activeName) {
             const container = document.getElementById('bank-pills-list');
             container.innerHTML = '';
+            if (!banks || banks.length === 0) return;
+
             banks.forEach(b => {
                 const pill = document.createElement('div');
                 pill.className = `bank-pill ${b.name === activeName ? 'active' : ''}`;
                 pill.dataset.bank = b.name;
-                pill.onclick = () => window.pickBankAndAssign(b.name);
+                pill.onclick = () => window.switchBank(b.name, true);
 
-                // 适配图标路径：优先寻找本地 image，路径与服务端 assets 保持一致
                 const iconName = b.name.toLowerCase() === 'ac' ? 'acleda' : b.name.toLowerCase();
-                pill.innerHTML = `<img src="assets/img/bank/${iconName}.jpg" class="bank-icon" onerror="this.src='${b.icon}'">`;
+                pill.innerHTML = `<img src="assets/img/bank/${iconName}.jpg" class="bank-icon" onerror="this.onerror=null; this.src='${b.icon}';">`;
                 container.appendChild(pill);
             });
         }
@@ -260,26 +235,19 @@
         function applyPaymentData(data) {
             document.getElementById('display-account-name').textContent = data.account_name || '--';
             document.getElementById('display-card-no').textContent = data.account_no || data.card_no;
-
             const bName = (data.bank_name.toUpperCase() === 'AC' || data.bank_name.toUpperCase() === 'ACLEDA') ? 'ACLEDA Bank' : data.bank_name.toUpperCase() + ' Bank';
             document.getElementById('display-bank-name').textContent = bName;
 
             document.getElementById('payment-info-area').classList.remove('d-none');
             document.getElementById('qr-display-area').classList.remove('d-none');
             document.getElementById('selection-placeholder').classList.add('d-none');
-
-            // 调用原生 checkout.js 绘图函数
             window.renderQrCode(data.khqr_string || data.qr_data, data.bank_name);
         }
 
         function startVisualTimer(totalSec) {
             let sec = parseInt(totalSec);
             const interval = setInterval(() => {
-                if (sec <= 0) {
-                    clearInterval(interval);
-                    location.reload();
-                    return;
-                }
+                if (sec <= 0) { clearInterval(interval); location.reload(); return; }
                 sec--;
                 if (typeof updateTimerVisuals === 'function') updateTimerVisuals(sec);
             }, 1000);
@@ -302,12 +270,9 @@
             const mask = document.getElementById('success-mask');
             const hint = document.getElementById('redirect-hint');
             mask.style.display = 'flex';
-
             let wait = 3;
-            const msg = I18N[currentLang].auto_close || "Redirecting in {{sec}}s...";
-
             const timer = setInterval(() => {
-                hint.innerHTML = msg.replace('{{sec}}', wait);
+                hint.innerHTML = `Redirecting in ${wait}s...`;
                 if (wait <= 0) {
                     clearInterval(timer);
                     if (url) location.href = url;
@@ -317,13 +282,11 @@
             }, 1000);
         }
 
-        // 覆盖原生 checkout.js 的 API 请求路径，因为 index.html 在 CF 上，需要绝对路径
         window.switchBank = async function (bankName, isPick = false) {
             const config = document.getElementById('checkout-config').dataset;
             const placeholder = document.getElementById('selection-placeholder');
-
             if (placeholder) {
-                placeholder.innerHTML = `<div class="p-4 text-center"><div class="spinner-border text-primary"></div><div class="mt-2 small text-muted">${I18N[currentLang].assigning}</div></div>`;
+                placeholder.innerHTML = '<div class="p-4 text-center"><div class="spinner-border text-primary"></div><div class="mt-2 small text-muted">Assigning...</div></div>';
                 placeholder.classList.remove('d-none');
             }
 
@@ -339,7 +302,7 @@
                     applyPaymentData(json.data);
                     config.bankName = bankName;
                     document.querySelectorAll('.bank-pill').forEach(p => p.classList.toggle('active', p.dataset.bank === bankName));
-                    updateInterface();
+                    if (typeof updateInterface === 'function') updateInterface();
                 } else {
                     placeholder.innerHTML = `<div class="p-4 text-center text-danger"><div>${json.msg}</div></div>`;
                 }
@@ -350,7 +313,6 @@
 
         document.addEventListener('DOMContentLoaded', initCheckout);
     </script>
-
 </body>
 
 </html>
