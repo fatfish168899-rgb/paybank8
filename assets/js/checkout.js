@@ -123,6 +123,8 @@ let currentLang = getDetectLanguage();
 window.setLanguage = function (lang) {
     currentLang = lang;
     localStorage.setItem('paybank_lang', lang);
+    // 同步写入 cookie 供直接输出超时的 php 页面读取，有效期 30 天
+    document.cookie = "paybank_lang=" + lang + "; path=/; max-age=" + (30 * 24 * 60 * 60);
     updateInterface();
 }
 
