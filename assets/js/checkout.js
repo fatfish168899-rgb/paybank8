@@ -29,7 +29,9 @@ const I18N = {
         net_err: "កំហុសបណ្តាញ សូមព្យាយាមម្តងទៀត",
         order_no_label: "លេខបញ្ជាទិញ",
         bank_label_row: "ធនាគារទទួល",
-        order_expired: "ការបញ្ជាទិញបានហួសពេល!"
+        order_expired: "ការបញ្ជាទិញបានហួសពេល!",
+        expired_desc: "ពេលវេលាបង់ប្រាក់បានផុតកំណត់ហើយ ដើម្បីសុវត្ថិភាពមូលនិធិ សូមចាប់ផ្តើមការបង់ប្រាក់ឡើងវិញ។ កូដ QR បច្ចុប្បន្នបានហួសសុពលភាពហើយ។",
+        refresh_btn: "ព្យាយាមម្តងទៀត"
     },
     en: {
         timer_hint: "Please pay within this time, system will auto-credit",
@@ -56,7 +58,9 @@ const I18N = {
         net_err: "Network error, please try again",
         order_no_label: "Order No",
         bank_label_row: "Receiving Bank",
-        order_expired: "Order Expired!"
+        order_expired: "Order Expired!",
+        expired_desc: "Payment time has expired. For fund security, please restart the payment. The current QR code is invalid.",
+        refresh_btn: "Retry"
     },
     zh: {
         timer_hint: "请在规定时间内完成支付",
@@ -83,7 +87,9 @@ const I18N = {
         net_err: "网络异常，请刷新后重试",
         order_no_label: "订单号",
         bank_label_row: "收款银行",
-        order_expired: "订单已超时!"
+        order_expired: "订单已超时!",
+        expired_desc: "付款时效已过期，为保障资金安全，请重新发起支付。当前二维码已失效。",
+        refresh_btn: "刷新重试"
     }
 };
 
@@ -173,15 +179,17 @@ window.copyText = function (id, btn) {
     const text = el.innerText.replace('$', '').trim();
     navigator.clipboard.writeText(text).then(() => {
         showToast(I18N[currentLang].copied || 'Copied!');
-        const targetBtn = btn || (event ? event.target : null);
-        if (targetBtn && targetBtn.tagName === 'BUTTON') {
-            const originalText = targetBtn.innerText;
-            targetBtn.innerText = I18N[currentLang].copied;
-            targetBtn.style.color = '#28a745';
+        if (btn && btn.tagName === 'BUTTON') {
+            const originalText = btn.innerText;
+            const originalBg = btn.style.backgroundColor;
+            btn.innerText = I18N[currentLang].copied;
+            btn.style.color = '#ffffff';
+            btn.style.backgroundColor = '#28a745';
             setTimeout(() => {
-                targetBtn.innerText = originalText;
-                targetBtn.style.color = '';
-            }, 2000);
+                btn.innerText = originalText;
+                btn.style.color = '';
+                btn.style.backgroundColor = originalBg;
+            }, 1000);
         }
     }).catch(err => console.error("Copy failed", err));
 };
@@ -192,7 +200,10 @@ function updateTimerVisuals(remainingSeconds) {
     const textEl = document.getElementById('timer-text');
 
     if (strokeEl) {
-        const offset = (remainingSeconds / (10 * 60)) * dashArray;
+        const config = document.getElementById('checkout-config').dataset;
+        // 尝试获取初始总时长，默认为 600
+        const total = parseInt(config.initialTotalSeconds || 600);
+        const offset = (remainingSeconds / total) * dashArray;
         strokeEl.setAttribute('stroke-dasharray', `${offset}, 100`);
     }
 
@@ -493,19 +504,30 @@ window.switchBank = async function (bankName, isPick = false) {
 document.addEventListener('DOMContentLoaded', function () {
     updateInterface();
     const configEl = document.getElementById('checkout-config');
-    if (configEl && configEl.dataset.remainingSeconds) {
-        const timerEl = document.getElementById('timer');
-        const expireTime = Date.now() + (parseInt(configEl.dataset.remainingSeconds) * 1000);
+    let timerInterval = null;
+
+    window.startCountdown = function (remainingSeconds) {
+        if (timerInterval) clearInterval(timerInterval);
+        if (isNaN(remainingSeconds) || remainingSeconds <= 0) return;
+
+        const expireTime = Date.now() + (parseInt(remainingSeconds) * 1000);
         const updateTimer = () => {
             const diff = expireTime - Date.now();
-            if (diff <= 0) { window.location.reload(); return; }
+            if (diff <= 0) {
+                clearInterval(timerInterval);
+                window.location.reload();
+                return;
+            }
             const totalSeconds = Math.floor(diff / 1000);
-
-            // 同步圆环视觉 (V17)
             updateTimerVisuals(totalSeconds);
         };
-        setInterval(updateTimer, 1000);
+
+        timerInterval = setInterval(updateTimer, 1000);
         updateTimer();
+    };
+
+    if (configEl && configEl.dataset.remainingSeconds && configEl.dataset.remainingSeconds !== '600') {
+        window.startCountdown(configEl.dataset.remainingSeconds);
     }
     // 状态轮询
     const statusPoller = setInterval(async () => {
