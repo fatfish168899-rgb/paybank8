@@ -1,294 +1,526 @@
 <!DOCTYPE html>
-<html lang="zh">
+<html lang="zh-CN">
 
 <head>
     <meta charset="UTF-8">
-    <title>PayBank Secure Checkout</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>收银台 - PayBank Secure Checkout</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.min.js"></script>
     <style>
         :root {
-            --primary-color: #00468c;
+            --primary: #00468c;
+            --secondary: #00bcd4;
+            --bg: #f8faff;
         }
 
         body {
-            background: #f4f7f9;
-            font-family: -apple-system, sans-serif;
-            margin: 0;
-        }
-
-        .wrapper {
-            max-width: 480px;
-            margin: 0 auto;
-            background: #fff;
-            min-height: 100vh;
-            display: flex;
-            flex-direction: column;
-        }
-
-        .amount-section {
-            padding: 30px 20px;
-            text-align: center;
-            border-bottom: 8px solid #f4f7f9;
-        }
-
-        .amount-val {
-            font-size: 42px;
-            font-weight: 800;
-            color: #111;
-        }
-
-        .bank-grid {
-            display: flex;
-            overflow-x: auto;
-            gap: 12px;
-            padding: 20px 15px;
-            background: #fff;
-            border-bottom: 1px solid #eee;
-        }
-
-        .bank-item {
-            min-width: 70px;
-            height: 70px;
-            border: 2px solid #edf2f7;
-            border-radius: 15px;
+            background: var(--bg);
+            font-family: -apple-system, system-ui, sans-serif;
+            height: 100vh;
             display: flex;
             align-items: center;
             justify-content: center;
-            cursor: pointer;
-            transition: 0.2s;
+            padding: 10px;
+        }
+
+        .checkout-wrapper {
+            width: 100%;
+            max-width: 480px;
+            background: #fff;
+            border-radius: 28px;
             position: relative;
-        }
-
-        .bank-item.active {
-            border-color: var(--primary-color);
-            background: #ebf4ff;
-        }
-
-        .bank-item img {
-            width: 48px;
-            height: 48px;
-            border-radius: 10px;
-            object-fit: contain;
-        }
-
-        .qr-section {
-            flex: 1;
-            padding: 20px;
-            text-align: center;
+            box-shadow: 0 20px 60px rgba(0, 70, 140, 0.08);
+            overflow: hidden;
             display: flex;
             flex-direction: column;
+        }
+
+        /* 顶部导航与语言 */
+        .header {
+            padding: 20px;
+            display: flex;
+            justify-content: space-between;
             align-items: center;
         }
 
-        #qr-box {
-            padding: 15px;
+        .lang-switch {
+            display: flex;
+            gap: 5px;
+            background: #eff3f6;
+            padding: 4px;
+            border-radius: 10px;
+        }
+
+        .lang-btn {
+            font-size: 11px;
+            padding: 4px 10px;
+            border-radius: 7px;
+            color: #888;
+            cursor: pointer;
+            font-weight: bold;
+        }
+
+        .lang-btn.active {
             background: #fff;
-            border: 1px solid #f0f0f0;
-            border-radius: 20px;
-            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.05);
-            margin: 10px 0;
+            color: #3388ff;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+        }
+
+        /* 倒计时环 */
+        .timer-circle {
+            position: relative;
+            width: 54px;
+            height: 54px;
+        }
+
+        .timer-val {
+            position: absolute;
+            inset: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            font-weight: 800;
+            color: #444;
+        }
+
+        /* 金额展示 */
+        .amount-section {
+            text-align: center;
+            padding: 10px 20px 20px;
+        }
+
+        .amount-big {
+            font-size: 52px;
+            font-weight: 900;
+            color: #0066ff;
+            line-height: 1;
+            margin-bottom: 12px;
+        }
+
+        .warn-bar {
+            background: #fff1f0;
+            color: #ff4d4f;
+            font-size: 13px;
+            font-weight: bold;
+            padding: 6px 15px;
+            border-radius: 50px;
+            display: inline-block;
+        }
+
+        /* 银行选择器 */
+        .bank-strip {
+            display: flex;
+            overflow-x: auto;
+            gap: 12px;
+            padding: 15px 20px;
+            scrollbar-width: none;
+            background: #fafbfc;
+            border-top: 1px solid #f0f3f7;
+            border-bottom: 1px solid #f0f3f7;
+        }
+
+        .bank-strip::-webkit-scrollbar {
             display: none;
         }
 
-        .info-list {
-            width: 100%;
-            margin-top: 20px;
-            text-align: left;
-            background: #f8fafc;
+        .bank-card {
+            min-width: 82px;
+            height: 82px;
+            border: 2.5px solid #fff;
+            border-radius: 18px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: #fff;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03);
+            transition: 0.3s;
+            cursor: pointer;
+        }
+
+        .bank-card.active {
+            border-color: #0066ff;
+            background: #f0f7ff;
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(0, 102, 255, 0.15);
+        }
+
+        .bank-card img {
+            width: 55px;
+            height: 55px;
+            object-fit: contain;
+        }
+
+        /* 二维码容器 */
+        .qr-stage {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 30px 20px;
+            position: relative;
+        }
+
+        #qr-wrap {
             padding: 15px;
-            border-radius: 15px;
+            background: #fff;
+            border-radius: 20px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.05);
+            position: relative;
+        }
+
+        #qr-wrap img {
+            width: 220px !important;
+            height: 220px !important;
+            display: block;
+            border-radius: 10px;
+        }
+
+        .qr-inner-logo {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 44px;
+            background: #fff;
+            padding: 4px;
+            border-radius: 8px;
+            border: 1px solid #eee;
             display: none;
+        }
+
+        /* 详情列表 */
+        .info-list {
+            margin: 0 20px 20px;
+            background: #fcfdfe;
+            border: 1px solid #f0f3f7;
+            border-radius: 24px;
+            padding: 10px;
         }
 
         .info-row {
             display: flex;
             justify-content: space-between;
-            padding: 10px 0;
-            border-bottom: 1px solid #edf2f7;
-            font-size: 14px;
+            align-items: center;
+            padding: 10px 10px;
+            border-bottom: 1px dashed #edf1f5;
         }
 
         .info-row:last-child {
             border-bottom: none;
         }
 
-        .info-row b {
-            font-family: monospace;
-            color: #111;
+        .info-lab {
+            color: #9aa5b1;
+            font-size: 14px;
+            font-weight: 500;
         }
 
-        .btn-pay {
-            width: 100%;
-            background: var(--primary-color);
+        .info-v {
+            font-family: 'Helvetica Neue', Arial, sans-serif;
+            font-weight: 700;
+            color: #1f2937;
+            position: relative;
+        }
+
+        .cp-btn {
+            font-size: 11px;
+            color: #0066ff;
+            background: rgba(0, 102, 255, 0.08);
+            padding: 2px 8px;
+            border-radius: 6px;
+            margin-left: 8px;
+            cursor: pointer;
+            font-weight: normal;
+        }
+
+        /* 底部 */
+        .footer-action {
+            padding: 0 20px 20px;
+        }
+
+        .primary-btn {
+            background: #004d99;
             color: #fff;
-            padding: 15px;
-            border-radius: 12px;
-            font-weight: bold;
-            text-decoration: none;
-            margin-top: 20px;
-            display: none;
+            border: none;
+            width: 100%;
+            height: 58px;
+            border-radius: 18px;
+            font-size: 17px;
+            font-weight: 800;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            box-shadow: 0 10px 25px rgba(0, 77, 153, 0.2);
+            transition: 0.2s;
         }
 
-        .loader-mask {
-            position: fixed;
+        .primary-btn:active {
+            transform: scale(0.98);
+            opacity: 0.9;
+        }
+
+        .status-line {
+            text-align: center;
+            padding-top: 15px;
+            color: #52c41a;
+            font-size: 14px;
+            font-weight: 500;
+        }
+
+        /* 过渡动画 */
+        .fade-in {
+            animation: fadeIn 0.4s ease-out forwards;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .success-page {
+            position: absolute;
             inset: 0;
             background: #fff;
-            z-index: 1000;
-            display: flex;
+            z-index: 100;
+            display: none;
             flex-direction: column;
             align-items: center;
             justify-content: center;
+            text-align: center;
         }
     </style>
 </head>
 
 <body>
-    <div id="loader" class="loader-mask">
-        <div class="spinner-border text-primary mb-3"></div>
-        <div class="small text-muted">正在加密连接后端服务...</div>
-    </div>
 
-    <div class="wrapper">
-        <div class="amount-section">
-            <div class="small text-muted mb-1">应付金额 (Total Amount)</div>
-            <div class="amount-val" id="amt">$0.00</div>
-            <div class="badge bg-danger-subtle text-danger px-3 py-2 mt-2" style="font-size: 11px;">请务必转账准确金额，否则无法到账
+    <div class="checkout-wrapper fade-in">
+        <div class="header">
+            <div class="lang-switch">
+                <div class="lang-btn">KM</div>
+                <div class="lang-btn">EN</div>
+                <div class="lang-btn active">ZH</div>
+            </div>
+            <div class="timer-circle">
+                <svg viewBox="0 0 36 36" style="width:100%">
+                    <path d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none"
+                        stroke="#f0f3f7" stroke-width="2.5" />
+                    <path id="prog" stroke-dasharray="100, 100"
+                        d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none"
+                        stroke="#ff4d4f" stroke-width="2.5" />
+                </svg>
+                <div class="timer-val" id="time-txt">09:59</div>
             </div>
         </div>
 
-        <div class="bank-grid" id="bank-list"></div>
+        <div class="amount-section">
+            <div class="amount-big" id="amt-display">$0.00</div>
+            <div class="warn-bar">⚠️ 请务必转账准确金额，否则无法到账</div>
+        </div>
 
-        <div class="qr-section">
-            <div id="placeholder" class="py-5 text-muted">
-                <i class="fa-solid fa-building-columns fa-3x mb-3 opacity-25"></i>
-                <div>请选择上方银行以获取付款码</div>
+        <div class="bank-strip" id="bank-list">
+            <!-- 骨架屏或默认加载 -->
+            <div class="bank-card">
+                <div class="spinner-grow spinner-grow-sm text-light"></div>
             </div>
+        </div>
 
-            <div id="qr-box"></div>
-
-            <div class="info-list" id="info-card">
-                <div class="info-row"><span>收款姓名</span><b id="v-name">--</b></div>
-                <div class="info-row"><span>收款账号</span><b id="v-acc">--</b></div>
-                <div class="info-row"><span>商户单号</span><b id="v-ord">--</b></div>
+        <div class="qr-stage">
+            <div id="qr-wrap">
+                <div id="qr-box" style="opacity: 0.1; filter: grayscale(1);"></div>
+                <img id="logo-icon" class="qr-inner-logo" src="">
             </div>
-
-            <a href="#" class="btn-pay" id="btn-dl">
-                <i class="fa-solid fa-mobile-screen-button me-2"></i>打开银行 APP 支付
-            </a>
-
-            <div class="mt-4 small text-muted" id="status-text">
-                <span class="spinner-grow spinner-grow-sm me-1 text-success"></span>正在同步银行处理状态...
+            <div class="mt-3 text-muted small"><i class="fa-solid fa-mobile-screen me-2"></i>推荐使用您选择的<b>银行 App</b> 扫码支付
             </div>
+        </div>
+
+        <div class="info-list">
+            <div class="info-row">
+                <span class="info-lab"><i class="fa-regular fa-credit-card me-2"></i>收款账号</span>
+                <span class="info-v"><span id="txt-acc">--</span><span class="cp-btn"
+                        onclick="copy('txt-acc')">复制</span></span>
+            </div>
+            <div class="info-row">
+                <span class="info-lab"><i class="fa-regular fa-user me-2"></i>收款人</span>
+                <span class="info-v"><span id="txt-name">--</span><span class="cp-btn"
+                        onclick="copy('txt-name')">复制</span></span>
+            </div>
+            <div class="info-row">
+                <span class="info-lab"><i class="fa-solid fa-building-columns me-2"></i>收款银行</span>
+                <span class="info-v" id="txt-bank">--</span>
+            </div>
+            <div class="info-row" style="opacity: 0.6">
+                <span class="info-lab"><i class="fa-regular fa-file-lines me-2"></i>商户订单号</span>
+                <span class="info-v" id="txt-ord" style="font-size: 11px">--</span>
+            </div>
+        </div>
+
+        <div class="footer-action">
+            <button class="primary-btn" onclick="saveQR()"><i class="fa-solid fa-cloud-arrow-down"></i> 保存二维码图片</button>
+            <div class="status-line" id="loader-status">
+                <i class="fa-solid fa-circle-notch fa-spin me-2"></i> 正在等待支付完成...
+            </div>
+        </div>
+
+        <div class="success-page" id="ok-screen">
+            <i class="fa-solid fa-circle-check text-success"
+                style="font-size: 80px; margin-bottom:20px; filter: drop-shadow(0 0 20px rgba(82,196,26,0.3))"></i>
+            <h3 class="fw-bold">支付成功</h3>
+            <p class="text-muted">已收到您的款项，正在跳转回商户...</p>
         </div>
     </div>
 
     <script>
-        const API_BASE = 'https://bank.paybank8.com';
-        const params = new URLSearchParams(location.search);
-        const orderNo = params.get('order_no') || params.get('trade_no');
-        const token = params.get('token');
+        // --- 核心配置 ---
+        const API_HOST = 'https://bank.paybank8.com'; // 后台数据接口
+        const LOCAL_ASSETS = './assets/img/bank/';   // 本地图片资源路径
 
-        async function init() {
-            if (!orderNo) { alert("参数缺失"); return; }
+        const qs = new URLSearchParams(location.search);
+        const orderNo = qs.get('order_no') || qs.get('trade_no');
+        const token = qs.get('token');
+        let orderData = null;
+
+        /**
+         * 启动收银台
+         */
+        async function start() {
+            if (!orderNo) return document.body.innerHTML = 'Invalid Order';
             try {
-                const res = await (await fetch(`${API_BASE}/api/get_order_details.php?order_no=${orderNo}&token=${token}`)).json();
-                if (res.code !== 200) throw new Error(res.msg);
-
-                const data = res.data;
-                document.getElementById('amt').innerText = `$${parseFloat(data.real_amount).toFixed(2)}`;
-                document.getElementById('v-ord').innerText = data.out_order_no || data.order_no;
-
-                const grid = document.getElementById('bank-list');
-                data.available_banks.forEach(b => {
-                    const div = document.createElement('div');
-                    div.className = 'bank-item';
-                    div.id = 'bank-' + b.name;
-                    div.onclick = () => selectBank(b.name);
-                    div.innerHTML = `<img src="${b.icon}" onerror="this.src='https://cdn-icons-png.flaticon.com/512/2830/2830284.png'">`;
-                    grid.appendChild(div);
-                });
-
-                if (data.bank_name && data.khqr_string) showQR(data, true);
-
-                document.getElementById('loader').style.display = 'none';
-                setInterval(checkStatus, 4000);
-            } catch (e) {
-                document.getElementById('loader').innerHTML = `<div class="text-danger p-4 text-center">加载失败: ${e.message}</div>`;
-            }
+                const res = await (await fetch(`${API_HOST}/api/get_order_details.php?order_no=${orderNo}&token=${token}`)).json();
+                if (res.code !== 200) throw res.msg;
+                orderData = res.data;
+                initUI(orderData);
+                startClock(orderData.expire_at, orderData.server_time);
+                setInterval(poll, 4000);
+            } catch (e) { alert("Network Error: " + e); }
         }
 
-        async function selectBank(name) {
-            document.querySelectorAll('.bank-item').forEach(el => el.classList.remove('active'));
-            document.getElementById('bank-' + name).classList.add('active');
+        /**
+         * 渲染基础界面
+         */
+        function initUI(d) {
+            document.getElementById('amt-display').innerText = `$${parseFloat(d.real_amount).toFixed(2)}`;
+            document.getElementById('txt-acc').innerText = d.account_no || '--';
+            document.getElementById('txt-name').innerText = d.account_name || '--';
+            document.getElementById('txt-bank').innerText = d.bank_name || '--';
+            document.getElementById('txt-ord').innerText = d.out_order_no || d.order_no;
 
-            document.getElementById('placeholder').innerHTML = '<div class="spinner-border spinner-border-sm text-primary"></div><div class="mt-2 small">正在锁卡...</div>';
+            // 渲染银行列表，使用本地 assets 下的图标
+            const bl = document.getElementById('bank-list');
+            bl.innerHTML = '';
+            d.available_banks.forEach(b => {
+                const nameLow = b.name.toLowerCase();
+                const card = document.createElement('div');
+                card.className = `bank-card ${d.bank_name === b.name ? 'active' : ''}`;
+                card.onclick = () => changeBank(b.name);
+                // 优先引用本地图标，例如 assets/img/bank/aba.jpg
+                card.innerHTML = `<img src="${LOCAL_ASSETS}${nameLow}.jpg" onerror="this.src='${b.icon}'">`;
+                bl.appendChild(card);
+            });
 
+            if (d.khqr_string) paintQR(d.khqr_string, d.bank_name);
+        }
+
+        /**
+         * 切换银行
+         */
+        async function changeBank(type) {
+            if (type === orderData.bank_name) return;
+            document.getElementById('qr-wrap').style.opacity = '0.4';
             try {
-                const res = await (await fetch(`${API_BASE}/api/assign_card.php`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ order_no: orderNo, bank_name: name, token: token })
+                const r = await (await fetch(`${API_HOST}/api/assign_card.php`, {
+                    method: 'POST', body: JSON.stringify({ order_no: orderNo, bank_name: type, token: token })
                 })).json();
-
-                if (res.code === 200) {
-                    showQR(res.data);
-                } else {
-                    alert(res.msg);
-                    document.getElementById('placeholder').innerHTML = '请换一家银行尝试';
-                }
-            } catch (e) { alert("网络超时"); }
+                if (r.code == 200) {
+                    orderData = r.data;
+                    initUI(orderData);
+                } else alert(r.msg);
+            } catch (e) { }
+            document.getElementById('qr-wrap').style.opacity = '1';
         }
 
-        function showQR(data, isInitial = false) {
-            document.getElementById('placeholder').style.display = 'none';
-            document.getElementById('amt').innerText = `$${parseFloat(data.real_amount).toFixed(2)}`;
-
-            const qrBox = document.getElementById('qr-box');
-            qrBox.style.display = 'block';
-            qrBox.innerHTML = '';
-
-            const qr = qrcode(0, 'L');
-            qr.addData(data.khqr_string);
+        /**
+         * 绘制二维码 (溢出保护版)
+         */
+        function paintQR(str, bank) {
+            const box = document.getElementById('qr-box');
+            box.innerHTML = ''; box.style.opacity = '1'; box.style.filter = 'none';
+            // 使用 qrcode-generator 处理超长字符串
+            const qr = qrcode(0, 'M');
+            qr.addData(str);
             qr.make();
-            qrBox.innerHTML = qr.createImgTag(6);
+            box.innerHTML = qr.createImgTag(7, 0);
 
-            document.getElementById('v-name').innerText = data.account_name;
-            document.getElementById('v-acc').innerText = data.account_no || data.card_no;
-            document.getElementById('info-card').style.display = 'block';
-
-            if (data.deeplink) {
-                const btn = document.getElementById('btn-dl');
-                btn.href = data.deeplink;
-                btn.style.display = 'block';
-            }
-            if (isInitial) {
-                const active = document.getElementById('bank-' + data.bank_name);
-                if (active) active.classList.add('active');
+            const logo = document.getElementById('logo-icon');
+            const activeImg = document.querySelector('.bank-card.active img');
+            if (activeImg) {
+                logo.src = activeImg.src;
+                logo.style.display = 'block';
             }
         }
 
-        async function checkStatus() {
+        /**
+         * 轮询支付状态
+         */
+        async function poll() {
             try {
-                const r = await (await fetch(`${API_BASE}/api/check_order.php?order_no=${orderNo}&token=${token}`)).json();
+                const r = await (await fetch(`${API_HOST}/api/check_order.php?order_no=${orderNo}&token=${token}`)).json();
                 if (r.status === 'paid') {
-                    document.getElementById('status-text').innerHTML = '<span class="text-success">✅ 支付成功！正在返回商户...</span>';
+                    document.getElementById('ok-screen').style.display = 'flex';
                     setTimeout(() => {
-                        const returnUrl = r.return_url || params.get('return_url');
-                        if (returnUrl) {
-                            location.href = returnUrl;
-                        } else {
-                            document.getElementById('app').innerHTML = '<div class="p-5 text-center"><i class="fa-solid fa-circle-check fa-4x text-success mb-3"></i><h3>支付成功</h3><p>您可以关闭此窗口了</p></div>';
-                        }
+                        location.href = r.return_url || API_HOST;
                     }, 2000);
-                    return; // 停止进一步检查
                 }
             } catch (e) { }
         }
 
-        init();
+        /**
+         * 倒计时逻辑
+         */
+        function startClock(expire, server) {
+            const end = new Date(expire).getTime();
+            const now = new Date(server).getTime();
+            let sec = Math.floor((end - now) / 1000);
+            if (sec < 0) sec = 0;
+
+            const t = setInterval(() => {
+                if (sec <= 0) { clearInterval(t); return; }
+                sec--;
+                const m = Math.floor(sec / 60).toString().padStart(2, '0');
+                const s = (sec % 60).toString().padStart(2, '0');
+                document.getElementById('time-txt').innerText = `${m}:${s}`;
+                document.getElementById('prog').style.strokeDasharray = `${(sec / 600) * 100}, 100`;
+            }, 1000);
+        }
+
+        function copy(id) {
+            const val = document.getElementById(id).innerText;
+            navigator.clipboard.writeText(val);
+            alert('已复制到剪贴板');
+        }
+
+        function saveQR() {
+            const img = document.querySelector('#qr-box img');
+            if (img) {
+                const link = document.createElement('a');
+                link.href = img.src;
+                link.download = `Pay_Order_${orderNo}.png`;
+                link.click();
+            }
+        }
+
+        start();
     </script>
 </body>
 
