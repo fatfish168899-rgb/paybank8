@@ -545,7 +545,7 @@ document.addEventListener('DOMContentLoaded', function () {
         updateTimer();
     };
 
-    if (configEl && configEl.dataset.remainingSeconds && configEl.dataset.remainingSeconds !== '600') {
+    if (configEl && configEl.dataset.orderNo && configEl.dataset.remainingSeconds && configEl.dataset.remainingSeconds !== '600') {
         window.startCountdown(configEl.dataset.remainingSeconds);
     }
     // 状态轮询
