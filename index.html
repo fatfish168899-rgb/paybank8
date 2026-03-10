@@ -7,7 +7,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link href="assets/css/bootstrap.min.css" rel="stylesheet">
     <link href="assets/css/all.min.css" rel="stylesheet">
-    <link href="assets/css/checkout.css" rel="stylesheet">
+    <link href="assets/css/checkout.css?v=27.4" rel="stylesheet">
     <style>
         #qrcode {
             position: relative;
@@ -161,28 +161,46 @@
 
     <script src="assets/js/bootstrap.bundle.min.js"></script>
     <script src="assets/js/qrcode.min.js"></script>
-    <script src="assets/js/checkout.js"></script>
+    <!-- 设置 API 基准地址，确保 checkout.js 中的请求发往后端域名 -->
+    <script>window.API_BASE = 'https://bank.paybank8.com/';</script>
+    <script src="assets/js/checkout.js?v=27.5"></script>
 
     <script>
-        const API_BASE = 'https://bank.paybank8.com';
-        const urlParams = new URLSearchParams(window.location.search);
-        const orderNo = urlParams.get('order_no') || urlParams.get('trade_no');
-        const token = urlParams.get('token');
+        // 利用 checkout.js 已定义的变量
+        // 冲突源修复：不再在 index.html 重新 const urlParams
+        const getUrlOrderNo = () => {
+            if (typeof urlParams !== 'undefined') {
+                return urlParams.get('order_no') || urlParams.get('trade_no');
+            }
+            const up = new URLSearchParams(window.location.search);
+            return up.get('order_no') || up.get('trade_no');
+        };
 
-        async function initCheckout() {
-            if (!orderNo) {
+        const getUrlToken = () => {
+            if (typeof currentToken !== 'undefined') return currentToken;
+            const up = new URLSearchParams(window.location.search);
+            return up.get('token');
+        };
+
+        async function initPage() {
+            const ono = getUrlOrderNo();
+            const tkn = getUrlToken();
+
+            if (!ono) {
                 console.error("Missing order_no");
-                document.getElementById('selection-placeholder').innerHTML = '<div class="error-overlay"><h5>缺少订单号</h5><p>请通过正确的支付链接访问</p></div>';
+                const ph = document.getElementById('selection-placeholder');
+                if (ph) ph.innerHTML = '<div class="error-overlay"><h5>缺少订单号</h5><p>请通过正确的支付链接访问</p></div>';
                 return;
             }
 
             try {
-                const res = await fetch(`${API_BASE}/api/get_order_details.php?order_no=${orderNo}&token=${token}`);
+                const res = await fetch(`${window.API_BASE}api/get_order_details.php?order_no=${ono}&token=${tkn}`);
                 if (!res.ok) throw new Error('API request failed');
                 const json = await res.json();
 
                 if (json.code !== 200) {
-                    document.getElementById('selection-placeholder').innerHTML = `<div class="error-overlay"><h5>订单错误</h5><p>${json.msg}</p></div>`;
+                    const ph = document.getElementById('selection-placeholder');
+                    if (ph) ph.innerHTML = `<div class="error-overlay"><h5>订单错误</h5><p>${json.msg}</p></div>`;
                     return;
                 }
 
@@ -199,24 +217,27 @@
                 document.getElementById('display-order-no').textContent = data.out_order_no || data.order_no;
                 document.getElementById('merchant-ref-display').textContent = data.out_order_no || 'N/A';
 
-                renderBankList(data.available_banks, data.bank_name);
+                renderBankPills(data.available_banks, data.bank_name);
 
                 if (data.bank_name && (data.khqr_string || data.qr_data)) {
                     config.bankName = data.bank_name;
-                    applyPaymentData(data);
+                    applyLocalPaymentData(data);
                 }
 
-                startVisualTimer(config.remainingSeconds);
-                startOrderPolling();
+                // 启动定时器逻辑已在 checkout.js DOMContentLoaded 中处理
+                // 但为了确保万无一失，此处可以手动触发
+                if (typeof updateTimerVisuals === 'function') updateTimerVisuals(config.remainingSeconds);
 
             } catch (err) {
                 console.error("Init Error:", err);
-                document.getElementById('selection-placeholder').innerHTML = '<div class="error-overlay"><h5>连接失败</h5><p>无法连接到后端服务器，请检查网络或 CORS 设置</p></div>';
+                const ph = document.getElementById('selection-placeholder');
+                if (ph) ph.innerHTML = '<div class="error-overlay"><h5>连接失败</h5><p>无法连接到后端服务器，请检查网络或 CORS 设置</p></div>';
             }
         }
 
-        function renderBankList(banks, activeName) {
+        function renderBankPills(banks, activeName) {
             const container = document.getElementById('bank-pills-list');
+            if (!container) return;
             container.innerHTML = '';
             if (!banks || banks.length === 0) return;
 
@@ -227,12 +248,13 @@
                 pill.onclick = () => window.switchBank(b.name, true);
 
                 const iconName = b.name.toLowerCase() === 'ac' ? 'acleda' : b.name.toLowerCase();
+                // 优先由于本地路径寻找
                 pill.innerHTML = `<img src="assets/img/bank/${iconName}.jpg" class="bank-icon" onerror="this.onerror=null; this.src='${b.icon}';">`;
                 container.appendChild(pill);
             });
         }
 
-        function applyPaymentData(data) {
+        function applyLocalPaymentData(data) {
             document.getElementById('display-account-name').textContent = data.account_name || '--';
             document.getElementById('display-card-no').textContent = data.account_no || data.card_no;
             const bName = (data.bank_name.toUpperCase() === 'AC' || data.bank_name.toUpperCase() === 'ACLEDA') ? 'ACLEDA Bank' : data.bank_name.toUpperCase() + ' Bank';
@@ -241,77 +263,13 @@
             document.getElementById('payment-info-area').classList.remove('d-none');
             document.getElementById('qr-display-area').classList.remove('d-none');
             document.getElementById('selection-placeholder').classList.add('d-none');
-            window.renderQrCode(data.khqr_string || data.qr_data, data.bank_name);
-        }
-
-        function startVisualTimer(totalSec) {
-            let sec = parseInt(totalSec);
-            const interval = setInterval(() => {
-                if (sec <= 0) { clearInterval(interval); location.reload(); return; }
-                sec--;
-                if (typeof updateTimerVisuals === 'function') updateTimerVisuals(sec);
-            }, 1000);
-        }
-
-        function startOrderPolling() {
-            const poller = setInterval(async () => {
-                try {
-                    const res = await fetch(`${API_BASE}/api/check_order.php?order_no=${orderNo}&token=${token}`);
-                    const json = await res.json();
-                    if (json.status === 'paid') {
-                        clearInterval(poller);
-                        showSuccessAndRedirect(json.return_url);
-                    }
-                } catch (e) { }
-            }, 4000);
-        }
-
-        function showSuccessAndRedirect(url) {
-            const mask = document.getElementById('success-mask');
-            const hint = document.getElementById('redirect-hint');
-            mask.style.display = 'flex';
-            let wait = 3;
-            const timer = setInterval(() => {
-                hint.innerHTML = `Redirecting in ${wait}s...`;
-                if (wait <= 0) {
-                    clearInterval(timer);
-                    if (url) location.href = url;
-                    else window.close();
-                }
-                wait--;
-            }, 1000);
-        }
-
-        window.switchBank = async function (bankName, isPick = false) {
-            const config = document.getElementById('checkout-config').dataset;
-            const placeholder = document.getElementById('selection-placeholder');
-            if (placeholder) {
-                placeholder.innerHTML = '<div class="p-4 text-center"><div class="spinner-border text-primary"></div><div class="mt-2 small text-muted">Assigning...</div></div>';
-                placeholder.classList.remove('d-none');
+            // 调用 checkout.js 中的 renderQrCode
+            if (typeof window.renderQrCode === 'function') {
+                window.renderQrCode(data.khqr_string || data.qr_data, data.bank_name);
             }
+        }
 
-            try {
-                const api = isPick ? '/api/assign_card.php' : '/api/switch_bank.php';
-                const res = await fetch(`${API_BASE}${api}`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ order_no: config.orderNo, bank_name: bankName, token: token })
-                });
-                const json = await res.json();
-                if (json.code === 200) {
-                    applyPaymentData(json.data);
-                    config.bankName = bankName;
-                    document.querySelectorAll('.bank-pill').forEach(p => p.classList.toggle('active', p.dataset.bank === bankName));
-                    if (typeof updateInterface === 'function') updateInterface();
-                } else {
-                    placeholder.innerHTML = `<div class="p-4 text-center text-danger"><div>${json.msg}</div></div>`;
-                }
-            } catch (e) {
-                placeholder.innerHTML = `<div class="p-4 text-center text-danger">Network Error</div>`;
-            }
-        };
-
-        document.addEventListener('DOMContentLoaded', initCheckout);
+        document.addEventListener('DOMContentLoaded', initPage);
     </script>
 </body>
 

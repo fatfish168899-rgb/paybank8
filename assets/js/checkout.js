@@ -503,7 +503,8 @@ document.addEventListener('DOMContentLoaded', function () {
         const configEl = document.getElementById('checkout-config');
         if (!configEl) return;
         try {
-            const res = await fetch(`api/check_order.php?order_no=${configEl.dataset.orderNo}&token=${currentToken}`);
+            const apiBase = (window.API_BASE || '').endsWith('/') ? window.API_BASE : (window.API_BASE ? window.API_BASE + '/' : '');
+            const res = await fetch(`${apiBase}api/check_order.php?order_no=${configEl.dataset.orderNo}&token=${currentToken}`);
             const json = await res.json();
             if (json.status === 'paid') {
                 clearInterval(statusPoller);
