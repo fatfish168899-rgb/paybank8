@@ -28,7 +28,8 @@ const I18N = {
         no_bank_card: "ធនាគារនេះមិនមានគណនីទេ សូមជ្រើសរើសធនាគារផ្សេងទៀត",
         net_err: "កំហុសបណ្តាញ សូមព្យាយាមម្តងទៀត",
         order_no_label: "លេខបញ្ជាទិញ",
-        bank_label_row: "ធនាគារទទួល"
+        bank_label_row: "ធនាគារទទួល",
+        order_expired: "ការបញ្ជាទិញបានហួសពេល!"
     },
     en: {
         timer_hint: "Please pay within this time, system will auto-credit",
@@ -54,7 +55,8 @@ const I18N = {
         no_bank_card: "No account for this bank, please choose another",
         net_err: "Network error, please try again",
         order_no_label: "Order No",
-        bank_label_row: "Receiving Bank"
+        bank_label_row: "Receiving Bank",
+        order_expired: "Order Expired!"
     },
     zh: {
         timer_hint: "请在规定时间内完成支付",
@@ -80,7 +82,8 @@ const I18N = {
         no_bank_card: "该银行暂时无可用账号，请选择其他银行",
         net_err: "网络异常，请刷新后重试",
         order_no_label: "订单号",
-        bank_label_row: "收款银行"
+        bank_label_row: "收款银行",
+        order_expired: "订单已超时!"
     }
 };
 
@@ -474,6 +477,11 @@ window.switchBank = async function (bankName, isPick = false) {
             updateInterface();
         } else {
             const msg = res.msg || I18N[currentLang].no_bank_card;
+            // 如果后端提示找不到订单（通常是由于已超时变状态），直接刷新页面触发 initPage 的超时判定
+            if (res.msg && res.msg.toLowerCase().includes('order not found')) {
+                window.location.reload();
+                return;
+            }
             placeholder.innerHTML = `<div class="p-4 text-center text-danger"><i class="fa-solid fa-triangle-exclamation fa-2x mb-2"></i><div>${msg}</div></div>`;
         }
     } catch (error) {
