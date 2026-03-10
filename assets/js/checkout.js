@@ -503,6 +503,17 @@ window.switchBank = async function (bankName, isPick = false) {
     }
 };
 
+window.showExpiredState = function () {
+    const glLoading = document.getElementById('page-loading');
+    if (glLoading) glLoading.style.display = 'none';
+
+    const mask = document.getElementById('expired-mask');
+    const container = document.querySelector('.checkout-container');
+    if (mask) mask.style.display = 'flex';
+    if (container) container.style.display = 'none';
+    if (typeof updateInterface === 'function') updateInterface();
+};
+
 document.addEventListener('DOMContentLoaded', function () {
     updateInterface();
     const configEl = document.getElementById('checkout-config');
@@ -510,14 +521,20 @@ document.addEventListener('DOMContentLoaded', function () {
 
     window.startCountdown = function (remainingSeconds) {
         if (timerInterval) clearInterval(timerInterval);
-        if (isNaN(remainingSeconds) || remainingSeconds <= 0) return;
 
-        const expireTime = Date.now() + (parseInt(remainingSeconds) * 1000);
+        let sec = parseInt(remainingSeconds);
+        // [FIX] 如果时间已经是负数，或者 NaN，立即触发静默超时蒙版
+        if (isNaN(sec) || sec <= 0) {
+            window.showExpiredState();
+            return;
+        }
+
+        const expireTime = Date.now() + (sec * 1000);
         const updateTimer = () => {
             const diff = expireTime - Date.now();
             if (diff <= 0) {
                 clearInterval(timerInterval);
-                window.location.reload();
+                window.showExpiredState();
                 return;
             }
             const totalSeconds = Math.floor(diff / 1000);
