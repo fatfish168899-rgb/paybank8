@@ -207,6 +207,7 @@
                 const data = json.data;
                 const config = document.getElementById('checkout-config').dataset;
                 config.orderNo = data.order_no;
+                config.checkoutMode = data.checkout_mode; // [CRITICAL FIX] 同步模式
                 config.merchantOrderNo = data.out_order_no;
 
                 const expireAt = new Date(data.expire_at).getTime();
@@ -245,7 +246,7 @@
                 const pill = document.createElement('div');
                 pill.className = `bank-pill ${b.name === activeName ? 'active' : ''}`;
                 pill.dataset.bank = b.name;
-                pill.onclick = () => window.switchBank(b.name, true);
+                pill.onclick = () => window.switchBank(b.name); // 去掉强制 true
 
                 const iconName = b.name.toLowerCase() === 'ac' ? 'acleda' : b.name.toLowerCase();
                 // 优先由于本地路径寻找
