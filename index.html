@@ -32,12 +32,44 @@
             text-align: center;
             color: #dc3545;
         }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: scale(0.98);
+            }
+
+            to {
+                opacity: 1;
+                transform: scale(1);
+            }
+        }
+
+        .mask-animate {
+            animation: fadeIn 0.3s ease-out forwards;
+        }
+
+        .skeleton-shimmer {
+            background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+            background-size: 200% 100%;
+            animation: shimmer 1.5s infinite;
+        }
+
+        @keyframes shimmer {
+            0% {
+                background-position: 200% 0;
+            }
+
+            100% {
+                background-position: -200% 0;
+            }
+        }
     </style>
 </head>
 
 <body>
     <div id="checkout-config" data-khqr="" data-order-no="" data-merchant-order-no="" data-amount="0.00"
-        data-checkout-mode="auto" data-remaining-seconds="600" data-bank-name=""></div>
+        data-checkout-mode="auto" data-remaining-seconds="0" data-bank-name=""></div>
 
     <div class="checkout-container m-0 p-0">
         <div class="payment-card shadow-lg">
@@ -97,7 +129,7 @@
             </div>
 
             <div class="text-center mt-0 amount-warning-container">
-                <div class="amount-display" id="copy-amount">$0.00</div>
+                <div class="amount-display" id="copy-amount">---</div>
                 <div class="text-danger fw-bold mt-0" style="font-size: 0.72rem;">
                     <i class="fa-solid fa-triangle-exclamation me-1"></i>
                     <span data-i18n="amount_warning">请确保转账金额一致，否则将无法自动到账</span>
@@ -151,22 +183,23 @@
         </div>
     </div>
 
-    <div id="success-mask"
-        style="display:none; position:fixed; inset:0; background:rgba(255,255,255,0.95); z-index:9999; flex-direction:column; align-items:center; justify-content:center; text-align:center;">
+    <div id="success-mask" class="mask-animate"
+        style="display:none; position:fixed; inset:0; background:rgba(255,255,255,0.98); z-index:9999; flex-direction:column; align-items:center; justify-content:center; text-align:center;">
         <i class="fa-solid fa-circle-check text-success" style="font-size: 80px; margin-bottom:20px;"></i>
         <h3 class="fw-bold" data-i18n="pay_success">支付成功!</h3>
         <p class="text-muted mt-2" id="redirect-hint"></p>
     </div>
 
     <!-- 超时提示全屏遮罩 -->
-    <div id="expired-mask"
-        style="display:none; position:fixed; inset:0; background:rgba(255,255,255,0.98); z-index:9998; flex-direction:column; align-items:center; justify-content:center; text-align:center; padding: 20px;">
-        <i class="fa-solid fa-clock-rotate-left text-danger opacity-50"
-            style="font-size: 100px; margin-bottom:30px;"></i>
+    <div id="expired-mask" class="mask-animate"
+        style="display:none; position:fixed; inset:0; background:rgba(255,255,255,0.98); z-index:9999; flex-direction:column; align-items:center; justify-content:center; text-align:center; padding: 20px;">
+        <i class="fa-solid fa-circle-xmark text-danger opacity-20"
+            style="font-size: 100px; margin-bottom:30px; opacity: 0.15;"></i>
         <h2 class="fw-bold text-danger mb-3" data-i18n="order_expired">订单已超时!</h2>
-        <p class="text-muted mb-4" style="max-width: 300px;">付款时效已过，请重新在平台发起支付。二维码及收款金额已失效。</p>
-        <button class="btn btn-outline-secondary px-4 rounded-pill" onclick="window.location.reload()"><i
-                class="fa-solid fa-rotate me-2"></i>刷新页面</button>
+        <p class="text-muted mb-4" style="max-width: 300px;" data-i18n="expired_desc">付款时效已过期，为保障资金安全，请重新发起支付。当前二维码已失效。
+        </p>
+        <button class="btn btn-secondary px-5 rounded-pill shadow-sm" onclick="window.location.reload()">
+            <i class="fa-solid fa-rotate me-2"></i><span data-i18n="refresh_btn">刷新重试</span></button>
     </div>
 
     <script src="assets/js/bootstrap.bundle.min.js"></script>
@@ -234,7 +267,12 @@
 
                 const expireAt = new Date(data.expire_at).getTime();
                 const serverTime = new Date(data.server_time).getTime();
-                config.remainingSeconds = Math.max(0, (expireAt - serverTime) / 1000);
+                const createdAt = new Date(data.created_at).getTime();
+                const remaining = Math.max(0, (expireAt - serverTime) / 1000);
+                const total = Math.max(remaining, (expireAt - createdAt) / 1000);
+
+                config.remainingSeconds = remaining;
+                config.initialTotalSeconds = total; // [NEW] 记录初始总秒数，用于进度条计算
 
                 document.getElementById('copy-amount').innerText = `$${parseFloat(data.real_amount).toFixed(2)}`;
                 document.getElementById('display-order-no').textContent = data.out_order_no || data.order_no;
@@ -247,14 +285,23 @@
                     applyLocalPaymentData(data);
                 }
 
-                // 启动定时器逻辑已在 checkout.js DOMContentLoaded 中处理
-                // 但为了确保万无一失，此处可以手动触发
-                if (typeof updateTimerVisuals === 'function') updateTimerVisuals(config.remainingSeconds);
+                // [CRITICAL FIX] 显式调用 checkout.js 中的重置倒计时逻辑，确保与服务器对齐
+                if (typeof window.startCountdown === 'function') {
+                    window.startCountdown(remaining);
+                }
 
             } catch (err) {
                 console.error("Init Error:", err);
                 const ph = document.getElementById('selection-placeholder');
-                if (ph) ph.innerHTML = '<div class="error-overlay"><h5>连接失败</h5><p>无法连接到后端服务器，请检查网络或 CORS 设置</p></div>';
+                if (ph) {
+                    ph.innerHTML = `
+                        <div class="error-overlay py-5">
+                            <i class="fa-solid fa-triangle-exclamation fa-3x mb-3 text-warning"></i>
+                            <h5 class="fw-bold">检测到连接异常</h5>
+                            <p class="text-muted small">无法加载订单数据，请检查网络后重试</p>
+                            <button class="btn btn-sm btn-outline-primary px-4 rounded-pill mt-2" onclick="window.location.reload()"><i class="fa-solid fa-rotate me-2"></i>点击重试</button>
+                        </div>`;
+                }
             }
         }
 
