@@ -559,48 +559,39 @@ document.addEventListener('DOMContentLoaded', function () {
             if (json.status === 'paid') {
                 clearInterval(statusPoller);
                 let secondsLeft = 3;
-                const retUrl = json.return_url || '';
+                let retUrl = json.return_url || '';
 
-                // 启用原生遮罩，消除闪缩感
-                const successMask = document.getElementById('success-mask');
-                const redirectHint = document.getElementById('redirect-hint');
-                const container = document.querySelector('.checkout-container');
-
-                if (successMask) successMask.style.display = 'flex';
-                if (container) container.style.display = 'none';
-
-                // 高兼容关页涵数
                 window.closeSmartPage = function () {
                     if (typeof WeixinJSBridge !== 'undefined') { WeixinJSBridge.call('closeWindow'); }
                     else if (typeof AlipayJSBridge !== 'undefined') { AlipayJSBridge.call('closeWebview'); }
-                    else {
-                        window.close();
-                        setTimeout(() => { window.location.href = 'about:blank'; }, 300);
-                    }
+                    else { window.close(); setTimeout(() => { window.location.href = 'about:blank'; }, 300); }
                 };
 
-                const updateSuccessText = () => {
-                    if (retUrl) {
-                        redirectHint.innerHTML = I18N[currentLang].auto_close.replace('{{sec}}', `<span class="fw-bold">${secondsLeft}</span>`);
-                    } else {
-                        redirectHint.innerHTML = `
-                            <p class="mb-3">${I18N[currentLang].auto_close.replace('{{sec}}', `<span class="fw-bold">${secondsLeft}</span>`)}</p>
-                            <button class="btn btn-primary px-4 py-2 rounded-pill shadow-sm" onclick="window.closeSmartPage()">${I18N[currentLang].close_page}</button>
-                        `;
-                    }
+                const updateSuccessHTML = () => {
+                    const secHtml = `<span id="close-timer-sec" class="fw-bold text-dark">${secondsLeft}</span>`;
+                    const hintText = I18N[currentLang].auto_close.replace('{{sec}}', secHtml);
+
+                    document.querySelector('.checkout-container').innerHTML = `
+                        <div class="payment-card shadow-lg text-center p-5 d-flex flex-column justify-content-center align-items-center" style="min-height: 480px; border-radius: 20px;">
+                            <i class="fa-solid fa-circle-check text-success display-1 mb-4" style="font-size: 90px; color: #198754; animation: scaleIn 0.4s ease-out;"></i>
+                            <h2 class="fw-bold mb-3" style="color: #212529;">${I18N[currentLang].pay_success}</h2>
+                            <p class="text-muted small mb-4" style="font-size: 15px;">${hintText}</p>
+                            ${!retUrl ? `<button class="btn btn-primary px-4 py-3 rounded-pill shadow-sm mt-3" style="width: 100%; max-width: 280px; font-size: 16px; transition: all 0.3s;" onclick="window.closeSmartPage()">${I18N[currentLang].close_page}</button>` : ''}
+                        </div>
+                        <style>@keyframes scaleIn { 0% { transform: scale(0.6); opacity: 0; } 100% { transform: scale(1); opacity: 1; } }</style>
+                    `;
                 };
-                updateSuccessText();
+
+                updateSuccessHTML();
 
                 const closeCountdown = setInterval(() => {
                     secondsLeft--;
-                    updateSuccessText();
+                    const el = document.getElementById('close-timer-sec');
+                    if (el) el.innerText = secondsLeft;
                     if (secondsLeft <= 0) {
                         clearInterval(closeCountdown);
-                        if (retUrl) {
-                            window.location.replace(retUrl);
-                        } else {
-                            window.closeSmartPage();
-                        }
+                        if (retUrl) window.location.replace(retUrl);
+                        else window.closeSmartPage();
                     }
                 }, 1000);
             }
