@@ -559,24 +559,48 @@ document.addEventListener('DOMContentLoaded', function () {
             if (json.status === 'paid') {
                 clearInterval(statusPoller);
                 let secondsLeft = 3;
-                const getCloseText = (s) => I18N[currentLang].auto_close.replace('{{sec}}', `<span id="close-timer-sec">${s}</span>`);
+                const retUrl = json.return_url || '';
 
-                document.querySelector('.checkout-container').innerHTML = `
-                    <div class="payment-card shadow-lg text-center p-5">
-                        <i class="fa-solid fa-circle-check text-success display-1 mb-4"></i>
-                        <h3 class="fw-bold">${I18N[currentLang].pay_success}</h3>
-                        <p class="text-muted small mt-2">${getCloseText(3)}</p>
-                        <button class="btn btn-primary mt-3 w-100" onclick="window.close()">${I18N[currentLang].close_page}</button>
-                    </div>
-                `;
+                // 启用原生遮罩，消除闪缩感
+                const successMask = document.getElementById('success-mask');
+                const redirectHint = document.getElementById('redirect-hint');
+                const container = document.querySelector('.checkout-container');
+
+                if (successMask) successMask.style.display = 'flex';
+                if (container) container.style.display = 'none';
+
+                // 高兼容关页涵数
+                window.closeSmartPage = function () {
+                    if (typeof WeixinJSBridge !== 'undefined') { WeixinJSBridge.call('closeWindow'); }
+                    else if (typeof AlipayJSBridge !== 'undefined') { AlipayJSBridge.call('closeWebview'); }
+                    else {
+                        window.close();
+                        setTimeout(() => { window.location.href = 'about:blank'; }, 300);
+                    }
+                };
+
+                const updateSuccessText = () => {
+                    if (retUrl) {
+                        redirectHint.innerHTML = I18N[currentLang].auto_close.replace('{{sec}}', `<span class="fw-bold">${secondsLeft}</span>`);
+                    } else {
+                        redirectHint.innerHTML = `
+                            <p class="mb-3">${I18N[currentLang].auto_close.replace('{{sec}}', `<span class="fw-bold">${secondsLeft}</span>`)}</p>
+                            <button class="btn btn-primary px-4 py-2 rounded-pill shadow-sm" onclick="window.closeSmartPage()">${I18N[currentLang].close_page}</button>
+                        `;
+                    }
+                };
+                updateSuccessText();
 
                 const closeCountdown = setInterval(() => {
                     secondsLeft--;
-                    const el = document.getElementById('close-timer-sec');
-                    if (el) el.innerText = secondsLeft;
+                    updateSuccessText();
                     if (secondsLeft <= 0) {
                         clearInterval(closeCountdown);
-                        window.close();
+                        if (retUrl) {
+                            window.location.replace(retUrl);
+                        } else {
+                            window.closeSmartPage();
+                        }
                     }
                 }, 1000);
             }
